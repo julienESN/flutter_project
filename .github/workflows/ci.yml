@@ -1,0 +1,103 @@
+name: Flutter Web CI & Vercel Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Cache pub
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Format check
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+
+      - name: Tests + couverture
+        run: |
+          flutter test --coverage
+          genhtml coverage/lcov.info -o coverage/html || true
+
+      - name: Build Web (release)
+        run: |
+          flutter config --enable-web
+          flutter build web --release --web-renderer canvaskit
+
+      - name: Upload artifacts (coverage + build)
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-web
+          path: build/web
+
+      # ---------- Deploy Vercel ----------
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      # Preview deploy pour feature/**
+      - name: Deploy Preview to Vercel
+        if: startsWith(github.ref, 'refs/heads/feature/')
+        id: vercel_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL=$(vercel deploy build/web --yes --token "$VERCEL_TOKEN")
+          echo "preview_url=$URL" >> $GITHUB_OUTPUT
+          echo "Preview URL: $URL"
+
+      - name: Comment PR with Preview URL
+        if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const url = "${{ steps.vercel_preview.outputs.preview_url }}";
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `🚀 Preview déployée sur Vercel : ${url}`
+            });
+
+      # Production deploy pour main
+      - name: Deploy Production to Vercel
+        if: github.ref == 'refs/heads/main'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          URL=$(vercel deploy build/web --prod --yes --token "$VERCEL_TOKEN")
+          echo "Prod URL: $URL"
