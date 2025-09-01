@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
-import 'email_field.dart';
-import 'password_field.dart';
-import 'submit_button.dart';
+import '../widgets/email_field.dart';
+import '../widgets/password_field.dart';
+import '../widgets/submit_button.dart';
 
 class LoginForm extends StatefulWidget {
   const LoginForm({super.key});

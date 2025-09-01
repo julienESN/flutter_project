@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/todo_provider.dart';
-import 'screens/login_screen.dart';
+//import 'screens/home_screen.dart';
+import 'screens/register_screen.dart';
 
 void main() {
   runApp(
@@ -17,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'TodoApp',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-      home: const LoginScreen(),
+      home: const RegisterScreen(),
     );
   }
 }
