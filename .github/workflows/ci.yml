@@ -50,13 +50,21 @@ jobs:
 
       - name: Tests + couverture
         run: |
-          flutter test --coverage
-          genhtml coverage/lcov.info -o coverage/html || true
+          if [ -d test ] && compgen -G "test/*.dart" > /dev/null; then
+            flutter test --coverage
+            [ -f coverage/lcov.info ] && genhtml coverage/lcov.info -o coverage/html || true
+          else
+            echo "No tests found, skipping test & coverage."
+            mkdir -p coverage && echo "TN:" > coverage/lcov.info
+            mkdir -p coverage/html
+          fi
 
       - name: Build Web (release)
         run: |
           flutter config --enable-web
           flutter build web --release
+          # si un vercel.json existe à la racine, on le copie dans le build
+          if [ -f vercel.json ]; then cp vercel.json build/web/; fi
 
       - name: Upload artifacts (coverage + build)
         uses: actions/upload-artifact@v4
@@ -68,24 +76,33 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      # Preview deploy pour feature/**
+      # Evite d'être (re)lié à une team: on supprime le lien local .vercel
+      - name: Reset Vercel link
+        run: rm -rf .vercel
+
+      # ✅ Preview pour TOUTES les PR (ou push sur feature/**)
       - name: Deploy Preview to Vercel
-        if: startsWith(github.ref, 'refs/heads/feature/')
+        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/feature/')
         id: vercel_preview
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          URL=$(vercel deploy build/web --yes --token "$VERCEL_TOKEN")
+          URL=$(vercel deploy build/web \
+            --yes \
+            --name flutter-todo-web \
+            --scope julienesn \
+            --token "$VERCEL_TOKEN")
           echo "preview_url=$URL" >> $GITHUB_OUTPUT
           echo "Preview URL: $URL"
 
       - name: Comment PR with Preview URL
-        if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const url = "${{ steps.vercel_preview.outputs.preview_url }}";
+            if (!url) { core.warning('No preview URL found'); return; }
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -93,11 +110,16 @@ jobs:
               body: `🚀 Preview déployée sur Vercel : ${url}`
             });
 
-      # Production deploy pour main
+      # ✅ Prod uniquement sur PUSH vers main
       - name: Deploy Production to Vercel
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          URL=$(vercel deploy build/web --prod --yes --token "$VERCEL_TOKEN")
+          URL=$(vercel deploy build/web \
+            --prod \
+            --yes \
+            --name flutter-todo-web \
+            --scope julienesn \
+            --token "$VERCEL_TOKEN")
           echo "Prod URL: $URL"
