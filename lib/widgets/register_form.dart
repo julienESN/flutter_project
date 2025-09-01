@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'email_field.dart';
 import 'password_field.dart';
 
@@ -38,7 +39,7 @@ class _RegisterFormState extends State<RegisterForm> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Inscription réussie ✅')));
-    Navigator.of(context).pop();
+    context.go('/login');
     setState(() => _loading = false);
   }
 
@@ -83,6 +84,24 @@ class _RegisterFormState extends State<RegisterForm> {
             child: _loading
                 ? const CircularProgressIndicator(strokeWidth: 2)
                 : const Text("S'inscrire"),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 4,
+            children: [
+              const Text('Déjà un compte ?'),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: const Size(0, 0),
+                ),
+                onPressed: () => context.go('/login'),
+                child: const Text('Se connecter'),
+              ),
+            ],
           ),
         ],
       ),
