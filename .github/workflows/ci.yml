@@ -1,4 +1,4 @@
-name: Flutter Web CI & Vercel Deploy
+name: Flutter Web CI
 
 on:
   push:
@@ -50,54 +50,35 @@ jobs:
 
       - name: Tests + couverture
         run: |
-          flutter test --coverage
-          genhtml coverage/lcov.info -o coverage/html || true
+          if [ -d test ] && compgen -G "test/*.dart" > /dev/null; then
+            flutter test --coverage
+            [ -f coverage/lcov.info ] && genhtml coverage/lcov.info -o coverage/html || true
+          else
+            echo "No tests found, skipping test & coverage."
+            mkdir -p coverage && echo "TN:" > coverage/lcov.info
+            mkdir -p coverage/html
+          fi
 
       - name: Build Web (release)
         run: |
           flutter config --enable-web
           flutter build web --release
 
-      - name: Upload artifacts (coverage + build)
+      # 📦 Artefacts
+      - name: Upload build (web)
         uses: actions/upload-artifact@v4
         with:
           name: build-web
           path: build/web
 
-      # ---------- Deploy Vercel ----------
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-
-      # Preview deploy pour feature/**
-      - name: Deploy Preview to Vercel
-        if: startsWith(github.ref, 'refs/heads/feature/')
-        id: vercel_preview
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          URL=$(vercel deploy build/web --yes --token "$VERCEL_TOKEN")
-          echo "preview_url=$URL" >> $GITHUB_OUTPUT
-          echo "Preview URL: $URL"
-
-      - name: Comment PR with Preview URL
-        if: startsWith(github.ref, 'refs/heads/feature/') && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Upload coverage (HTML)
+        uses: actions/upload-artifact@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const url = "${{ steps.vercel_preview.outputs.preview_url }}";
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: `🚀 Preview déployée sur Vercel : ${url}`
-            });
+          name: coverage-html
+          path: coverage/html
 
-      # Production deploy pour main
-      - name: Deploy Production to Vercel
-        if: github.ref == 'refs/heads/main'
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          URL=$(vercel deploy build/web --prod --yes --token "$VERCEL_TOKEN")
-          echo "Prod URL: $URL"
+      - name: Upload lcov.info
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
