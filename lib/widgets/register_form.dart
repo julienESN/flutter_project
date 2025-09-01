@@ -35,9 +35,9 @@ class _RegisterFormState extends State<RegisterForm> {
     await Future.delayed(const Duration(seconds: 1)); // Simulation d'API
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Inscription réussie ✅')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Inscription réussie ✅')));
     Navigator.of(context).pop();
     setState(() => _loading = false);
   }
@@ -77,7 +77,9 @@ class _RegisterFormState extends State<RegisterForm> {
           const SizedBox(height: 24),
           FilledButton(
             onPressed: _loading ? null : _register,
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
             child: _loading
                 ? const CircularProgressIndicator(strokeWidth: 2)
                 : const Text("S'inscrire"),

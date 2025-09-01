@@ -20,11 +20,16 @@ void main() {
       );
 
       expect(find.text('Créer un compte'), findsOneWidget);
-      expect(find.byType(TextFormField), findsNWidgets(3)); // email + mdp + confirmer
+      expect(
+        find.byType(TextFormField),
+        findsNWidgets(3),
+      ); // email + mdp + confirmer
       expect(find.text("S'inscrire"), findsOneWidget);
     });
 
-    testWidgets('valide les champs vides et affiche les erreurs', (tester) async {
+    testWidgets('valide les champs vides et affiche les erreurs', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => TodoProvider(),
@@ -36,7 +41,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Email requis'), findsOneWidget);
-      expect(find.text('Mot de passe requis'), findsNWidgets(2)); // mdp + confirmation
+      expect(
+        find.text('Mot de passe requis'),
+        findsNWidgets(2),
+      ); // mdp + confirmation
     });
 
     testWidgets('toggle visibilité des mots de passe', (tester) async {
@@ -74,7 +82,10 @@ void main() {
       await tester.tap(find.text("S'inscrire"));
       await tester.pumpAndSettle();
 
-      expect(find.text("Les mots de passe ne correspondent pas"), findsOneWidget);
+      expect(
+        find.text("Les mots de passe ne correspondent pas"),
+        findsOneWidget,
+      );
     });
   });
 }
