@@ -1,91 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:todo/providers/todo_provider.dart';
 import 'package:todo/screens/register_screen.dart';
 
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
-  });
-
   group('RegisterScreen', () {
     testWidgets('affiche tous les champs et le bouton', (tester) async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => TodoProvider(),
-          child: MaterialApp(home: RegisterScreen()),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
 
-      expect(find.text('Créer un compte'), findsOneWidget);
-      expect(
-        find.byType(TextFormField),
-        findsNWidgets(3),
-      ); // email + mdp + confirmer
-      expect(find.text("S'inscrire"), findsOneWidget);
+      expect(find.text('Créer un compte'), findsWidgets);
+      expect(find.byType(TextFormField), findsNWidgets(2));
+      expect(find.text('Créer mon compte'), findsOneWidget);
     });
 
     testWidgets('valide les champs vides et affiche les erreurs', (
       tester,
     ) async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => TodoProvider(),
-          child: MaterialApp(home: RegisterScreen()),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
 
-      await tester.tap(find.text("S'inscrire"));
+      await tester.tap(find.text('Créer mon compte'));
       await tester.pumpAndSettle();
 
+      // Email vide
       expect(find.text('Email requis'), findsOneWidget);
-      expect(
-        find.text('Mot de passe requis'),
-        findsNWidgets(2),
-      ); // mdp + confirmation
+      // MDP vide -> ton validator renvoie "6 caractères minimum"
+      expect(find.text('6 caractères minimum'), findsOneWidget);
     });
 
-    testWidgets('toggle visibilité des mots de passe', (tester) async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => TodoProvider(),
-          child: MaterialApp(home: RegisterScreen()),
-        ),
-      );
-
-      // deux champs de mot de passe -> deux icônes visibility
-      expect(find.byIcon(Icons.visibility_outlined), findsNWidgets(2));
-
-      await tester.tap(find.byIcon(Icons.visibility_outlined).first);
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
-
-      await tester.tap(find.byIcon(Icons.visibility_outlined).last);
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.visibility_off_outlined), findsNWidgets(2));
-    });
-
-    testWidgets('valide que les mots de passe correspondent', (tester) async {
-      await tester.pumpWidget(
-        ChangeNotifierProvider(
-          create: (_) => TodoProvider(),
-          child: MaterialApp(home: RegisterScreen()),
-        ),
-      );
+    testWidgets('affiche erreur longueur minimale du mot de passe', (
+      tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
 
       await tester.enterText(find.byType(TextFormField).at(0), 'a@b.com');
-      await tester.enterText(find.byType(TextFormField).at(1), '123456');
-      await tester.enterText(find.byType(TextFormField).at(2), '654321');
-
-      await tester.tap(find.text("S'inscrire"));
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        '123',
+      ); // trop court
+      await tester.tap(find.text('Créer mon compte'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.text("Les mots de passe ne correspondent pas"),
-        findsOneWidget,
+      expect(find.text('6 caractères minimum'), findsOneWidget);
+    });
+
+    testWidgets('le lien vers connexion navigue vers /login', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: const RegisterScreen(),
+          routes: {
+            '/login': (_) => const Scaffold(body: Text('Login Placeholder')),
+          },
+        ),
       );
+
+      await tester.tap(find.text('Déjà un compte ? Se connecter'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Login Placeholder'), findsOneWidget);
     });
   });
 }
