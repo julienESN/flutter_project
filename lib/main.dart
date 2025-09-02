@@ -39,7 +39,7 @@ Future<void> main() async {
           initialData: null,
         ),
       ],
-      child: const MyApp(),
+      child: const MyApp(key: ValueKey('app')),
     ),
   );
 }
@@ -52,10 +52,10 @@ class MyApp extends StatelessWidget {
       title: 'TodoApp',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.indigo),
-      home: const _Gate(),
+      home: const _Gate(key: ValueKey('_gate')),
       routes: {
-        '/login': (_) => const LoginScreen(),
-        '/register': (_) => const RegisterScreen(),
+        '/login': (_) => const LoginScreen(key: ValueKey('login')),
+        '/register': (_) => const RegisterScreen(key: ValueKey('register')),
       },
     );
   }
@@ -67,7 +67,9 @@ class _Gate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<User?>();
-    if (user == null) return const RegisterScreen();
-    return const HomeScreen();
+    if (user == null) {
+      return const RegisterScreen(key: ValueKey('register'));
+    }
+    return const HomeScreen(key: ValueKey('home'));
   }
 }
