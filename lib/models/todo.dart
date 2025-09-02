@@ -1,19 +1,44 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Todo {
-  final String id;
+  final String id; // id du document Firestore
   final String title;
   final bool done;
+  final DateTime? createdAt;
 
-  Todo({required this.id, required this.title, this.done = false});
+  Todo({
+    required this.id,
+    required this.title,
+    this.done = false,
+    this.createdAt,
+  });
 
-  Todo copyWith({String? id, String? title, bool? done}) {
+  Todo copyWith({String? id, String? title, bool? done, DateTime? createdAt}) {
     return Todo(
       id: id ?? this.id,
       title: title ?? this.title,
       done: done ?? this.done,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
-  Map<String, dynamic> toJson() => {"id": id, "title": title, "done": done};
-  factory Todo.fromJson(Map<String, dynamic> json) =>
-      Todo(id: json["id"], title: json["title"], done: json["done"] as bool);
+  Map<String, dynamic> toMap() => {
+    'title': title,
+    'done': done,
+    'createdAt': createdAt != null
+        ? Timestamp.fromDate(createdAt!)
+        : FieldValue.serverTimestamp(),
+  };
+
+  static Todo fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? {};
+    return Todo(
+      id: doc.id,
+      title: (data['title'] ?? '') as String,
+      done: (data['done'] ?? false) as bool,
+      createdAt: (data['createdAt'] is Timestamp)
+          ? (data['createdAt'] as Timestamp).toDate()
+          : null,
+    );
+  }
 }
