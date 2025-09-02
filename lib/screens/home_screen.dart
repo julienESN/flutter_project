@@ -1,23 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/todo_item.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   final _ctrl = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    context.read<TodoProvider>().load();
-  }
 
   @override
   void dispose() {
@@ -32,8 +26,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('TodoApp'),
+        title: const Text('Mes tâches'),
         actions: [
+          IconButton(
+            tooltip: 'Déconnexion',
+            onPressed: () => FirebaseAuth.instance.signOut(),
+            icon: const Icon(Icons.logout),
+          ),
           IconButton(
             tooltip: 'Supprimer les tâches terminées',
             onPressed: completed == 0
