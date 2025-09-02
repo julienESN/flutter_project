@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../screens/home_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/email_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/submit_button.dart';
@@ -26,9 +26,7 @@ class _LoginFormState extends State<LoginForm> {
 
   Future<void> _submit(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+    context.go('/home');
   }
 
   @override
@@ -60,21 +58,7 @@ class _LoginFormState extends State<LoginForm> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   minimumSize: Size(0, 0),
                 ),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Créer un compte'),
-                      content: const Text('Bientôt disponible.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                onPressed: () => context.go('/register'),
                 child: const Text('Créer un compte'),
               ),
             ],

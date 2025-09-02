@@ -2,19 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
 import 'package:todo/providers/todo_provider.dart';
 import 'package:todo/screens/login_screen.dart';
+import 'package:todo/screens/home_screen.dart';
+import 'package:todo/screens/register_screen.dart';
 
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
+
+  // Configuration GoRouter pour les tests
+  late GoRouter router;
+
+  setUp(() {
+    router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(
+          path: '/login',
+          name: 'login',
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: '/register',
+          name: 'register',
+          builder: (context, state) => const RegisterScreen(),
+        ),
+        GoRoute(
+          path: '/home',
+          name: 'home',
+          builder: (context, state) => const HomeScreen(),
+        ),
+      ],
+    );
+  });
+
   group('LoginScreen', () {
     testWidgets('affiche les champs et le bouton', (tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => TodoProvider(),
-          child: const MaterialApp(home: LoginScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
 
@@ -29,7 +59,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => TodoProvider(),
-          child: const MaterialApp(home: LoginScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
 
@@ -44,7 +74,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => TodoProvider(),
-          child: const MaterialApp(home: LoginScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
 
@@ -60,7 +90,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider(
           create: (_) => TodoProvider(),
-          child: const MaterialApp(home: LoginScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
 
