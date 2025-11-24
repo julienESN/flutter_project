@@ -38,13 +38,14 @@ class TodoProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> add(String title) async {
+  Future<void> add(String title, {DateTime? dueDate}) async {
     final u = _user;
     if (u == null || title.trim().isEmpty) return;
     await _db.collection('users').doc(u.uid).collection('todos').add({
       'title': title.trim(),
       'done': false,
       'createdAt': FieldValue.serverTimestamp(),
+      if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate),
     });
   }
 
