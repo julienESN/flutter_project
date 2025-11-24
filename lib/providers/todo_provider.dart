@@ -69,6 +69,17 @@ class TodoProvider extends ChangeNotifier {
         .delete();
   }
 
+  Future<void> updateDueDate(String id, DateTime? dueDate) async {
+    final u = _user;
+    if (u == null) return;
+    final ref = _db.collection('users').doc(u.uid).collection('todos').doc(id);
+    if (dueDate == null) {
+      await ref.update({'dueDate': FieldValue.delete()});
+    } else {
+      await ref.update({'dueDate': Timestamp.fromDate(dueDate)});
+    }
+  }
+
   Future<void> clearCompleted() async {
     final u = _user;
     if (u == null) return;

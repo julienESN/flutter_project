@@ -5,12 +5,14 @@ class TodoItem extends StatelessWidget {
   final Todo todo;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
+  final VoidCallback onEditDueDate;
 
   const TodoItem({
     super.key,
     required this.todo,
     required this.onToggle,
     required this.onDelete,
+    required this.onEditDueDate,
   });
 
   @override
@@ -31,26 +33,31 @@ class TodoItem extends StatelessWidget {
         child: const Icon(Icons.delete),
       ),
       onDismissed: (_) => onDelete(),
-      child: ListTile(
-        leading: Checkbox(value: todo.done, onChanged: (_) => onToggle()),
-        title: Text(
-          todo.title,
-          style: TextStyle(
-            decoration: todo.done ? TextDecoration.lineThrough : null,
-            color: todo.done ? Colors.grey : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTap: onEditDueDate,
+        onLongPress: onEditDueDate,
+        child: ListTile(
+          leading: Checkbox(value: todo.done, onChanged: (_) => onToggle()),
+          title: Text(
+            todo.title,
+            style: TextStyle(
+              decoration: todo.done ? TextDecoration.lineThrough : null,
+              color: todo.done ? Colors.grey : null,
+            ),
           ),
-        ),
-        onTap: onToggle,
-        subtitle: Row(
-          children: [
-            Icon(Icons.event, size: 16, color: iconColor),
-            const SizedBox(width: 4),
-            Text(dueText),
-          ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline),
-          onPressed: onDelete,
+          onTap: onToggle,
+          subtitle: Row(
+            children: [
+              Icon(Icons.event, size: 16, color: iconColor),
+              const SizedBox(width: 4),
+              Text(dueText),
+            ],
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete_outline),
+            onPressed: onDelete,
+          ),
         ),
       ),
     );

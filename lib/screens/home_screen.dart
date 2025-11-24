@@ -9,6 +9,8 @@ enum SortOption { dueSoonestFirst, dueLatestFirst }
 
 enum FilterOption { all, completedOnly, pendingOnly }
 
+enum _DueDateAction { pick, clear }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
@@ -136,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context.read<TodoProvider>().toggle(t.id),
                         onDelete: () =>
                             context.read<TodoProvider>().remove(t.id),
+                        onEditDueDate: () => _editDueDate(t),
                       );
                     },
                   ),
@@ -177,6 +180,49 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return filtered;
+  }
+
+  Future<void> _editDueDate(Todo todo) async {
+    final action = await showModalBottomSheet<_DueDateAction>(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.event),
+            title: const Text('Définir une nouvelle échéance'),
+            onTap: () => Navigator.of(context).pop(_DueDateAction.pick),
+          ),
+          ListTile(
+            leading: const Icon(Icons.event_busy),
+            title: const Text('Supprimer l\'échéance'),
+            onTap: () => Navigator.of(context).pop(_DueDateAction.clear),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || action == null) return;
+
+    if (action == _DueDateAction.clear) {
+      await context.read<TodoProvider>().updateDueDate(todo.id, null);
+      return;
+    }
+
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+      initialDate: todo.dueDate ?? now,
+    );
+
+    if (picked == null) return;
+
+    await context.read<TodoProvider>().updateDueDate(
+      todo.id,
+      DateTime(picked.year, picked.month, picked.day),
+    );
   }
 }
 
