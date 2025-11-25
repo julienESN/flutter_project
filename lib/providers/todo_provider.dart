@@ -59,8 +59,6 @@ class TodoProvider extends ChangeNotifier {
     });
   }
 
-
-
   Future<void> restore(Todo todo) async {
     final u = _user;
     if (u == null) return;
