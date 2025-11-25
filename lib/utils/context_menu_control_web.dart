@@ -8,4 +8,3 @@ void disableBrowserContextMenuForApp() {
   _contextMenuDisabled = true;
   html.document.onContextMenu.listen((event) => event.preventDefault());
 }
-

@@ -254,7 +254,7 @@ class _BuildControls extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DropdownButtonFormField<SortOption>(
-            value: sortOption,
+            initialValue: sortOption,
             decoration: const InputDecoration(
               labelText: 'Trier par',
               border: OutlineInputBorder(),

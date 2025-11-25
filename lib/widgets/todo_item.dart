@@ -96,11 +96,11 @@ class TodoItem extends StatelessWidget {
     String plural(int value) => value.abs() > 1 ? 's' : '';
 
     if (delta > 0) {
-      return '(${delta} jour${plural(delta)} restant${plural(delta)})';
+      return '($delta jour${plural(delta)} restant${plural(delta)})';
     }
     if (delta < 0) {
       final late = delta.abs();
-      return '(${late} jour${plural(late)} en retard)';
+      return '($late jour${plural(late)} en retard)';
     }
     return '(0 jour restant)';
   }
