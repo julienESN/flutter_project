@@ -136,6 +136,18 @@ class TodoProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateTitle(String id, String title) async {
+    final u = _user;
+    final trimmed = title.trim();
+    if (u == null || trimmed.isEmpty) return;
+    await _db
+        .collection('users')
+        .doc(u.uid)
+        .collection('todos')
+        .doc(id)
+        .update({'title': trimmed});
+  }
+
   Future<void> clearCompleted() async {
     final u = _user;
     if (u == null) return;

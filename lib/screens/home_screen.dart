@@ -11,7 +11,7 @@ enum SortOption { dueSoonestFirst, dueLatestFirst }
 
 enum FilterOption { all, completedOnly, pendingOnly }
 
-enum _DueDateAction { pick, clear }
+enum _TodoContextAction { rename, pickDueDate, clearDueDate }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -180,8 +180,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         onToggle: () =>
                             context.read<TodoProvider>().toggle(t.id),
                         onDelete: () => _deleteTodo(t),
-                        onEditDueDate: () => _editDueDate(t),
-                        onEditTitle: () => _editTitle(t),
+                        onShowContextMenu: () => _openTodoContextMenu(t),
+                        onEditTitle: () => _renameTodo(t),
                       );
                     },
                   ),
@@ -225,21 +225,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return filtered;
   }
 
-  Future<void> _editDueDate(Todo todo) async {
-    final action = await showModalBottomSheet<_DueDateAction>(
+  Future<void> _openTodoContextMenu(Todo todo) async {
+    final action = await showModalBottomSheet<_TodoContextAction>(
       context: context,
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Renommer la tâche'),
+            onTap: () => Navigator.of(context).pop(_TodoContextAction.rename),
+          ),
+          ListTile(
             leading: const Icon(Icons.event),
             title: const Text('Définir une nouvelle échéance'),
-            onTap: () => Navigator.of(context).pop(_DueDateAction.pick),
+            onTap: () => Navigator.of(context).pop(_TodoContextAction.pickDueDate),
           ),
           ListTile(
             leading: const Icon(Icons.event_busy),
             title: const Text('Supprimer l\'échéance'),
-            onTap: () => Navigator.of(context).pop(_DueDateAction.clear),
+            onTap: () => Navigator.of(context).pop(_TodoContextAction.clearDueDate),
           ),
         ],
       ),
@@ -247,10 +252,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted || action == null) return;
 
-    if (action == _DueDateAction.clear) {
+    if (action == _TodoContextAction.rename) {
+      await _renameTodo(todo);
+      return;
+    }
+
+    if (action == _TodoContextAction.clearDueDate) {
       await context.read<TodoProvider>().updateDueDate(todo.id, null);
       return;
     }
+
+    if (action != _TodoContextAction.pickDueDate) return;
 
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -286,36 +298,42 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _editTitle(Todo todo) async {
-    final controller = TextEditingController(text: todo.title);
+  Future<void> _renameTodo(Todo todo) async {
+    final ctrl = TextEditingController(text: todo.title);
     final newTitle = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Modifier la tâche'),
+        title: const Text('Renommer la tâche'),
         content: TextField(
-          controller: controller,
+          controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(
-            labelText: 'Titre',
+            labelText: 'Nom de la tâche',
             border: OutlineInputBorder(),
           ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () => Navigator.of(context).pop(ctrl.text),
             child: const Text('Enregistrer'),
           ),
         ],
       ),
     );
 
-    if (newTitle != null && newTitle.trim().isNotEmpty && mounted) {
-      await context.read<TodoProvider>().updateTitle(todo.id, newTitle);
-    }
+    ctrl.dispose();
+
+    if (newTitle == null) return;
+
+    final trimmed = newTitle.trim();
+    if (trimmed.isEmpty || trimmed == todo.title) return;
+
+    await context.read<TodoProvider>().updateTitle(todo.id, trimmed);
   }
 }
 
