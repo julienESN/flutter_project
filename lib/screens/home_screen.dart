@@ -239,12 +239,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ListTile(
             leading: const Icon(Icons.event),
             title: const Text('Définir une nouvelle échéance'),
-            onTap: () => Navigator.of(context).pop(_TodoContextAction.pickDueDate),
+            onTap: () =>
+                Navigator.of(context).pop(_TodoContextAction.pickDueDate),
           ),
           ListTile(
             leading: const Icon(Icons.event_busy),
             title: const Text('Supprimer l\'échéance'),
-            onTap: () => Navigator.of(context).pop(_TodoContextAction.clearDueDate),
+            onTap: () =>
+                Navigator.of(context).pop(_TodoContextAction.clearDueDate),
           ),
         ],
       ),
@@ -328,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     ctrl.dispose();
 
-    if (newTitle == null) return;
+    if (!mounted || newTitle == null) return;
 
     final trimmed = newTitle.trim();
     if (trimmed.isEmpty || trimmed == todo.title) return;

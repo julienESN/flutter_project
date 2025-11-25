@@ -6,6 +6,7 @@ class TodoItem extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onDelete;
   final VoidCallback onShowContextMenu;
+  final VoidCallback onEditTitle;
 
   const TodoItem({
     super.key,
@@ -13,6 +14,7 @@ class TodoItem extends StatelessWidget {
     required this.onToggle,
     required this.onDelete,
     required this.onShowContextMenu,
+    required this.onEditTitle,
   });
 
   @override
