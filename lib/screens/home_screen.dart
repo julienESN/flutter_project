@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/todo.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/todo_item.dart';
@@ -10,7 +11,7 @@ enum SortOption { dueSoonestFirst, dueLatestFirst }
 
 enum FilterOption { all, completedOnly, pendingOnly }
 
-enum _DueDateAction { pick, clear }
+enum _TodoContextAction { rename, pickDueDate, clearDueDate }
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,16 +22,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _ctrl = TextEditingController();
   DateTime? _selectedDueDate;
+  TodoPriority _selectedPriority = TodoPriority.none;
   SortOption _sortOption = SortOption.dueSoonestFirst;
   FilterOption _filterOption = FilterOption.all;
 
   Future<void> _submitTodo() async {
     final text = _ctrl.text;
     if (text.trim().isEmpty) return;
-    await context.read<TodoProvider>().add(text, dueDate: _selectedDueDate);
+    await context.read<TodoProvider>().add(
+      text,
+      dueDate: _selectedDueDate,
+      priority: _selectedPriority,
+    );
     _ctrl.clear();
     if (mounted) {
-      setState(() => _selectedDueDate = null);
+      setState(() {
+        _selectedDueDate = null;
+        _selectedPriority = TodoPriority.none;
+      });
     }
   }
 
@@ -111,6 +120,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                DropdownButton<TodoPriority>(
+                  value: _selectedPriority,
+                  underline: const SizedBox(),
+                  items: TodoPriority.values.map((p) {
+                    return DropdownMenuItem(
+                      value: p,
+                      child: _PriorityIcon(priority: p),
+                    );
+                  }).toList(),
+                  onChanged: (p) {
+                    if (p != null) setState(() => _selectedPriority = p);
+                  },
+                ),
+                const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _submitTodo,
                   child: const Text('Ajouter'),
@@ -128,18 +151,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Expanded(
             child: todos.isEmpty
-                ? const Center(child: Text('Aucune tâche pour le moment.'))
-                : ListView.builder(
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          'assets/images/empty_state.svg',
+                          width: 200,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Aucune tâche pour le moment.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ReorderableListView.builder(
                     itemCount: displayedTodos.length,
+                    onReorder: (oldIndex, newIndex) {
+                      context.read<TodoProvider>().reorder(oldIndex, newIndex);
+                    },
                     itemBuilder: (context, i) {
                       final t = displayedTodos[i];
                       return TodoItem(
+                        key: ValueKey(t.id),
                         todo: t,
                         onToggle: () =>
                             context.read<TodoProvider>().toggle(t.id),
-                        onDelete: () =>
-                            context.read<TodoProvider>().remove(t.id),
-                        onEditDueDate: () => _editDueDate(t),
+                        onDelete: () => _deleteTodo(t),
+                        onShowContextMenu: () => _openTodoContextMenu(t),
+                        onEditTitle: () => _renameTodo(t),
                       );
                     },
                   ),
@@ -183,21 +225,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return filtered;
   }
 
-  Future<void> _editDueDate(Todo todo) async {
-    final action = await showModalBottomSheet<_DueDateAction>(
+  Future<void> _openTodoContextMenu(Todo todo) async {
+    final action = await showModalBottomSheet<_TodoContextAction>(
       context: context,
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Renommer la tâche'),
+            onTap: () => Navigator.of(context).pop(_TodoContextAction.rename),
+          ),
+          ListTile(
             leading: const Icon(Icons.event),
             title: const Text('Définir une nouvelle échéance'),
-            onTap: () => Navigator.of(context).pop(_DueDateAction.pick),
+            onTap: () =>
+                Navigator.of(context).pop(_TodoContextAction.pickDueDate),
           ),
           ListTile(
             leading: const Icon(Icons.event_busy),
             title: const Text('Supprimer l\'échéance'),
-            onTap: () => Navigator.of(context).pop(_DueDateAction.clear),
+            onTap: () =>
+                Navigator.of(context).pop(_TodoContextAction.clearDueDate),
           ),
         ],
       ),
@@ -205,10 +254,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted || action == null) return;
 
-    if (action == _DueDateAction.clear) {
+    if (action == _TodoContextAction.rename) {
+      await _renameTodo(todo);
+      return;
+    }
+
+    if (action == _TodoContextAction.clearDueDate) {
       await context.read<TodoProvider>().updateDueDate(todo.id, null);
       return;
     }
+
+    if (action != _TodoContextAction.pickDueDate) return;
 
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -224,6 +280,82 @@ class _HomeScreenState extends State<HomeScreen> {
       todo.id,
       DateTime(picked.year, picked.month, picked.day),
     );
+  }
+
+  Future<void> _deleteTodo(Todo todo) async {
+    final provider = context.read<TodoProvider>();
+    await provider.remove(todo.id);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Tâche supprimée'),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Annuler',
+          onPressed: () => provider.restore(todo),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _renameTodo(Todo todo) async {
+    final ctrl = TextEditingController(text: todo.title);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Renommer la tâche'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Nom de la tâche',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(ctrl.text),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+
+    ctrl.dispose();
+
+    if (!mounted || newTitle == null) return;
+
+    final trimmed = newTitle.trim();
+    if (trimmed.isEmpty || trimmed == todo.title) return;
+
+    await context.read<TodoProvider>().updateTitle(todo.id, trimmed);
+  }
+}
+
+class _PriorityIcon extends StatelessWidget {
+  final TodoPriority priority;
+
+  const _PriorityIcon({required this.priority});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (priority) {
+      case TodoPriority.urgent:
+        return const Icon(Icons.circle, color: Colors.red, size: 16);
+      case TodoPriority.perso:
+        return const Icon(Icons.circle, color: Colors.green, size: 16);
+      case TodoPriority.work:
+        return const Icon(Icons.circle, color: Colors.blue, size: 16);
+      case TodoPriority.none:
+        return const Icon(Icons.circle_outlined, color: Colors.grey, size: 16);
+    }
   }
 }
 
