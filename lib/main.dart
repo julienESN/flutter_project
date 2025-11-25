@@ -10,12 +10,14 @@ import 'providers/todo_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/login_screen.dart';
+import 'utils/context_menu_control.dart';
 
 // Démarrer avec : flutter run -d chrome --dart-define=USE_EMULATORS=true
 const bool kUseEmulators = bool.fromEnvironment('USE_EMULATORS');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  disableBrowserContextMenuForApp();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Persistance offline Firestore

@@ -38,13 +38,14 @@ class TodoProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> add(String title) async {
+  Future<void> add(String title, {DateTime? dueDate}) async {
     final u = _user;
     if (u == null || title.trim().isEmpty) return;
     await _db.collection('users').doc(u.uid).collection('todos').add({
       'title': title.trim(),
       'done': false,
       'createdAt': FieldValue.serverTimestamp(),
+      if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate),
     });
   }
 
@@ -66,6 +67,17 @@ class TodoProvider extends ChangeNotifier {
         .collection('todos')
         .doc(id)
         .delete();
+  }
+
+  Future<void> updateDueDate(String id, DateTime? dueDate) async {
+    final u = _user;
+    if (u == null) return;
+    final ref = _db.collection('users').doc(u.uid).collection('todos').doc(id);
+    if (dueDate == null) {
+      await ref.update({'dueDate': FieldValue.delete()});
+    } else {
+      await ref.update({'dueDate': Timestamp.fromDate(dueDate)});
+    }
   }
 
   Future<void> clearCompleted() async {
