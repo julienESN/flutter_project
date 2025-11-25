@@ -30,7 +30,7 @@ class TodoProvider extends ChangeNotifier {
         .collection('users')
         .doc(user.uid)
         .collection('todos')
-        .orderBy('createdAt', descending: true);
+        .orderBy('order');
 
     _todosSub = col.snapshots().listen((snap) {
       _items = snap.docs.map((d) => Todo.fromDoc(d)).toList();
@@ -38,14 +38,47 @@ class TodoProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> add(String title, {DateTime? dueDate}) async {
+  Future<void> add(
+    String title, {
+    DateTime? dueDate,
+    TodoPriority priority = TodoPriority.none,
+  }) async {
     final u = _user;
     if (u == null || title.trim().isEmpty) return;
+
+    // Determine new order (at the end)
+    final int newOrder = _items.isEmpty ? 0 : (_items.last.order + 1);
+
     await _db.collection('users').doc(u.uid).collection('todos').add({
       'title': title.trim(),
       'done': false,
       'createdAt': FieldValue.serverTimestamp(),
       if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate),
+      'priority': priority.name,
+      'order': newOrder,
+    });
+  }
+
+  Future<void> updateTitle(String id, String newTitle) async {
+    final u = _user;
+    if (u == null || newTitle.trim().isEmpty) return;
+    await _db.collection('users').doc(u.uid).collection('todos').doc(id).update(
+      {'title': newTitle.trim()},
+    );
+  }
+
+  Future<void> restore(Todo todo) async {
+    final u = _user;
+    if (u == null) return;
+    await _db.collection('users').doc(u.uid).collection('todos').add({
+      'title': todo.title,
+      'done': todo.done,
+      'createdAt': todo.createdAt != null
+          ? Timestamp.fromDate(todo.createdAt!)
+          : FieldValue.serverTimestamp(),
+      if (todo.dueDate != null) 'dueDate': Timestamp.fromDate(todo.dueDate!),
+      'priority': todo.priority.name,
+      'order': todo.order,
     });
   }
 
@@ -56,6 +89,29 @@ class TodoProvider extends ChangeNotifier {
     final doc = await ref.get();
     final current = (doc.data()?['done'] ?? false) as bool;
     await ref.update({'done': !current});
+  }
+
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    final u = _user;
+    if (u == null) return;
+
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = _items.removeAt(oldIndex);
+    _items.insert(newIndex, item);
+    notifyListeners(); // Optimistic update
+
+    final batch = _db.batch();
+    for (int i = 0; i < _items.length; i++) {
+      final ref = _db
+          .collection('users')
+          .doc(u.uid)
+          .collection('todos')
+          .doc(_items[i].id);
+      batch.update(ref, {'order': i});
+    }
+    await batch.commit();
   }
 
   Future<void> remove(String id) async {
