@@ -1,6 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/todo.dart';
 import '../providers/todo_provider.dart';
 import '../widgets/todo_item.dart';
@@ -229,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
       initialDate: todo.dueDate ?? now,
     );
 
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
 
     await context.read<TodoProvider>().updateDueDate(
       todo.id,
@@ -303,7 +304,7 @@ class _BuildControls extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DropdownButtonFormField<SortOption>(
-            value: sortOption,
+            initialValue: sortOption,
             decoration: const InputDecoration(
               labelText: 'Trier par',
               border: OutlineInputBorder(),

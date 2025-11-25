@@ -32,13 +32,13 @@ class Todo {
   }
 
   Map<String, dynamic> toMap() => {
-        'title': title,
-        'done': done,
-        'createdAt': createdAt != null
-            ? Timestamp.fromDate(createdAt!)
-            : FieldValue.serverTimestamp(),
-        if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate!),
-      };
+    'title': title,
+    'done': done,
+    'createdAt': createdAt != null
+        ? Timestamp.fromDate(createdAt!)
+        : FieldValue.serverTimestamp(),
+    if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate!),
+  };
 
   static Todo fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
