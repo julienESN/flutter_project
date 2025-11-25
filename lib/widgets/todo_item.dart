@@ -6,6 +6,7 @@ class TodoItem extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onDelete;
   final VoidCallback onShowContextMenu;
+  final VoidCallback onEditTitle;
 
   const TodoItem({
     super.key,
@@ -13,6 +14,7 @@ class TodoItem extends StatelessWidget {
     required this.onToggle,
     required this.onDelete,
     required this.onShowContextMenu,
+    required this.onEditTitle,
   });
 
   @override
@@ -38,22 +40,43 @@ class TodoItem extends StatelessWidget {
         onSecondaryTap: onShowContextMenu,
         onLongPress: onShowContextMenu,
         child: ListTile(
-          leading: Checkbox(value: todo.done, onChanged: (_) => onToggle()),
-          title: Text(
-            todo.title,
-            style: TextStyle(
-              decoration: todo.done ? TextDecoration.lineThrough : null,
-              color: todo.done ? Colors.grey : null,
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (todo.priority != TodoPriority.none) ...[
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _priorityColor(todo.priority),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Checkbox(value: todo.done, onChanged: (_) => onToggle()),
+            ],
+          ),
+          title: GestureDetector(
+            onTap: onEditTitle,
+            child: Text(
+              todo.title,
+              style: TextStyle(
+                decoration: todo.done ? TextDecoration.lineThrough : null,
+                color: todo.done ? Colors.grey : null,
+              ),
             ),
           ),
           onTap: onToggle,
-          subtitle: Row(
-            children: [
-              Icon(Icons.event, size: 16, color: iconColor),
-              const SizedBox(width: 4),
-              Text(dueText),
-            ],
-          ),
+          subtitle: todo.dueDate == null
+              ? null
+              : Row(
+                  children: [
+                    Icon(Icons.event, size: 16, color: iconColor),
+                    const SizedBox(width: 4),
+                    Text(dueText),
+                  ],
+                ),
           trailing: IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: onDelete,
@@ -69,8 +92,8 @@ class TodoItem extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(dueDate.year, dueDate.month, dueDate.day);
     if (target.isBefore(today)) return Colors.red;
-    if (target.difference(today).inDays <= 2) return Colors.orange;
-    return Colors.green;
+    if (target.difference(today).inDays == 0) return Colors.orange;
+    return Colors.blue;
   }
 
   String _dueText(DateTime? dueDate) {
@@ -103,5 +126,18 @@ class TodoItem extends StatelessWidget {
       return '($late jour${plural(late)} en retard)';
     }
     return '(0 jour restant)';
+  }
+
+  Color _priorityColor(TodoPriority p) {
+    switch (p) {
+      case TodoPriority.urgent:
+        return Colors.red;
+      case TodoPriority.perso:
+        return Colors.green;
+      case TodoPriority.work:
+        return Colors.blue;
+      case TodoPriority.none:
+        return Colors.transparent;
+    }
   }
 }

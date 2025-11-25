@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum TodoPriority { urgent, perso, work, none }
+
 class Todo {
   final String id; // id du document Firestore
   final String title;
   final bool done;
   final DateTime? createdAt;
   final DateTime? dueDate;
+  final TodoPriority priority;
+  final int order;
 
   Todo({
     required this.id,
@@ -13,6 +17,8 @@ class Todo {
     this.done = false,
     this.createdAt,
     this.dueDate,
+    this.priority = TodoPriority.none,
+    this.order = 0,
   });
 
   Todo copyWith({
@@ -21,6 +27,8 @@ class Todo {
     bool? done,
     DateTime? createdAt,
     DateTime? dueDate,
+    TodoPriority? priority,
+    int? order,
   }) {
     return Todo(
       id: id ?? this.id,
@@ -28,6 +36,8 @@ class Todo {
       done: done ?? this.done,
       createdAt: createdAt ?? this.createdAt,
       dueDate: dueDate ?? this.dueDate,
+      priority: priority ?? this.priority,
+      order: order ?? this.order,
     );
   }
 
@@ -38,6 +48,8 @@ class Todo {
         ? Timestamp.fromDate(createdAt!)
         : FieldValue.serverTimestamp(),
     if (dueDate != null) 'dueDate': Timestamp.fromDate(dueDate!),
+    'priority': priority.name,
+    'order': order,
   };
 
   static Todo fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -52,6 +64,11 @@ class Todo {
       dueDate: (data['dueDate'] is Timestamp)
           ? (data['dueDate'] as Timestamp).toDate()
           : null,
+      priority: TodoPriority.values.firstWhere(
+        (e) => e.name == (data['priority'] ?? 'none'),
+        orElse: () => TodoPriority.none,
+      ),
+      order: (data['order'] ?? 0) as int,
     );
   }
 }
