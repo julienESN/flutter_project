@@ -17,7 +17,7 @@ Gestion d’état via **provider** et persistance offline Firestore activée.
     
 -   (Optionnel mais recommandé) **Firebase CLI** & **FlutterFire CLI** :
     
-    `npm i -g firebase-tools
+    `npm i -g firebase-tools &&
     dart pub global activate flutterfire_cli` 
     
 
